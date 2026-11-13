@@ -1,0 +1,33 @@
+workflows:
+  ios-unsigned-ipa:
+    name: Nomindo iOS Build (Unsigned IPA)
+    max_build_duration: 30
+    instance_type: mac_mini_m2
+    environment:
+      xcode: latest
+    scripts:
+      - name: Install XcodeGen
+        script: |
+          brew install xcodegen
+      - name: Generate Xcode Project
+        script: |
+          xcodegen generate
+      - name: Build Unsigned iOS Archive
+        script: |
+          xcodebuild -project Nomindo.xcodeproj \
+            -scheme Nomindo \
+            -configuration Release \
+            -sdk iphoneos \
+            -archivePath $CM_BUILD_DIR/Nomindo.xcarchive \
+            clean archive \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+      - name: Package Unsigned IPA for Sideloadly
+        script: |
+          mkdir -p $CM_BUILD_DIR/Payload
+          cp -r $CM_BUILD_DIR/Nomindo.xcarchive/Products/Applications/Nomindo.app $CM_BUILD_DIR/Payload/
+          cd $CM_BUILD_DIR
+          zip -r Nomindo.ipa Payload
+    artifacts:
+      - $CM_BUILD_DIR/Nomindo.ipa
